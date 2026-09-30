@@ -2,7 +2,7 @@ services:
   mysql:
     image: mysql:8
     container_name: mysql
-    profiles: ["localdb"]                   # μόνο στο local mode
+    #profiles: ["localdb"]                   # μόνο στο local mode
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE:-payment_service}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change-me}
@@ -57,7 +57,14 @@ services:
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
       SPRING_FLYWAY_ENABLED: "false"    # db-migrate service
+      
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_INIT_URL: ${STRIPE_INIT_URL}
+      STRIPE_CONFIRM_URL: ${STRIPE_CONFIRM_URL}
+      
       FRAUD_API_URL: http://fraud-detection:8000/predict-fraud
+      FRAUD_API_SECRET_KEY: ${FRAUD_API_SECRET_KEY}
+
     ports:
       - "8080:8080"
     depends_on:
@@ -71,6 +78,21 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - payment-system
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
 volumes:
